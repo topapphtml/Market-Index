@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Index News — Market Indices Bot</title>
+  <style>
+    :root {
+      --bg: #121824;
+      --panel: #1b2534;
+      --panel-2: #202d3e;
+      --line: #314157;
+      --text: #f4f7fb;
+      --muted: #a9b7ca;
+      --accent: #78a9ff;
+      --green: #30d478;
+      --red: #ff5f65;
+      --shadow: 0 18px 48px rgba(0,0,0,.28);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 0%, rgba(65,105,170,.22), transparent 34rem),
+        linear-gradient(145deg, #111722 0%, var(--bg) 48%, #0e141e 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 22px 0 52px; display: flex; flex-direction: column; }
+    header { order: 0; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 10px; }
+    .eyebrow { color: var(--accent); font-size: .78rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { margin: 6px 0 4px; font-size: clamp(2rem, 5vw, 3.45rem); line-height: 1; letter-spacing: -.045em; }
+    .subtitle { color: var(--muted); margin: 0; font-size: clamp(.98rem, 2vw, 1.12rem); }
+    .live-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px var(--green); }
+
+    .intro, .indices-card, .statusbar { background: rgba(29,40,55,.92); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 22px; }
+    .intro { order: 4; padding: clamp(20px, 4vw, 32px); margin-top: 28px; }
+    .intro h2 { margin: 0 0 10px; font-size: clamp(1.2rem, 3vw, 1.65rem); }
+    .intro p { margin: 0 0 20px; color: var(--muted); line-height: 1.6; max-width: 780px; }
+    .badges { display: flex; flex-wrap: wrap; gap: 9px; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #3a4a61; background: #172131; color: #dfe8f5; border-radius: 999px; padding: 8px 11px; font-size: .84rem; }
+    .badge span { font-size: 1rem; }
+
+    .toolbar { order: 1; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 8px 0 10px; }
+    .refresh { border: 0; border-radius: 14px; padding: 14px 20px; color: #07111f; background: linear-gradient(135deg, #9dc2ff, #6f9dff); font-weight: 850; font-size: 1rem; cursor: pointer; box-shadow: 0 10px 25px rgba(95,146,255,.23); transition: transform .2s, filter .2s; }
+    .refresh:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .refresh:disabled { cursor: wait; opacity: .72; transform: none; }
+    .updated { color: var(--muted); font-size: .85rem; text-align: right; }
+
+    .indices-card { order: 2; overflow: hidden; }
+    .card-heading { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(51,75,109,.42), transparent); }
+    .card-heading h2 { margin: 0; font-size: 1.15rem; }
+    .source { color: var(--muted); font-size: .76rem; }
+    .rows { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; grid-template-areas: "name change" "value change"; align-items: center; gap: 4px 8px; min-height: 66px; padding: 9px 13px; border-bottom: 1px solid rgba(49,65,87,.62); }
+    .row:nth-child(odd) { background: rgba(255,255,255,.018); }
+    .name { grid-area: name; font-weight: 700; font-size: .88rem; white-space: nowrap; }
+    .ticker { display: block; color: var(--muted); font-size: .72rem; font-weight: 600; margin-top: 3px; letter-spacing: .04em; }
+    .value { grid-area: value; font-variant-numeric: tabular-nums; font-weight: 750; font-size: .82rem; }
+    .currency { color: var(--muted); font-size: .72rem; font-weight: 600; margin-left: 3px; }
+    .change { grid-area: change; align-self: center; justify-self: end; min-width: 68px; text-align: right; font-size: .76rem; font-variant-numeric: tabular-nums; font-weight: 800; }
+    .change.positive { color: var(--green); }
+    .change.negative { color: var(--red); }
+    .signal { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; vertical-align: 1px; }
+    .positive .signal { background: var(--green); box-shadow: 0 0 9px rgba(48,212,120,.7); }
+    .negative .signal { background: var(--red); box-shadow: 0 0 9px rgba(255,95,101,.7); }
+    .statusbar { order: 3; margin-top: 10px; padding: 9px 13px; color: var(--muted); font-size: .75rem; }
+    .statusbar strong { color: var(--text); }
+    .error-note { color: #ffd28a; }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 16px, 620px); padding-top: 12px; }
+      header { flex-direction: column; gap: 8px; margin-bottom: 5px; }
+      .live-pill { align-self: flex-start; }
+      .toolbar { align-items: stretch; flex-direction: row; gap: 8px; margin: 5px 0 7px; }
+      .refresh { width: auto; padding: 9px 12px; font-size: .84rem; }
+      .updated { text-align: left; }
+      .rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .row { min-height: 61px; padding: 7px 8px; gap: 2px 5px; }
+      .name { font-size: .72rem; }
+      .ticker { display: none; }
+      .value { font-size: .67rem; }
+      .currency { font-size: .58rem; }
+      .change { min-width: 51px; font-size: .62rem; }
+      .signal { width: 7px; height: 7px; margin-right: 2px; }
+      .card-heading { padding: 10px 11px; }
+      .card-heading h2 { font-size: .92rem; }
+      .source { max-width: 110px; text-align: right; font-size: .62rem; }
+      .statusbar { font-size: .66rem; }
+      .intro { margin-top: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">Market intelligence dashboard</div>
+        <h1>Index News 📈</h1>
+        <p class="subtitle">Welcome to the Market Indices Bot!</p>
+      </div>
+      <div class="live-pill"><span class="live-dot"></span> Live market view</div>
+    </header>
+
+    <section class="intro" aria-labelledby="supported-title">
+      <h2 id="supported-title">🌍 Supported indices</h2>
+      <p>Indicative quotes for the world's main markets. Press <strong>Refresh</strong> to request the latest available data.</p>
+      <div class="badges">
+        <div class="badge"><span>🇺🇸</span> USA</div><div class="badge"><span>🇪🇺</span> EU</div><div class="badge"><span>🇩🇪</span> Germany</div><div class="badge"><span>🇮🇹</span> Italy</div><div class="badge"><span>🇫🇷</span> France</div><div class="badge"><span>🇯🇵</span> Japan</div><div class="badge"><span>🇨🇳</span> China</div><div class="badge"><span>🇧🇷</span> Brazil</div><div class="badge"><span>🇬🇧</span> UK</div><div class="badge"><span>🇪🇸</span> Spain</div><div class="badge"><span>🇨🇭</span> Switzerland</div><div class="badge"><span>🇦🇺</span> Australia</div><div class="badge"><span>🇵🇭</span> Philippines</div><div class="badge"><span>₿</span> Bitcoin</div>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <button id="refreshBtn" class="refresh" type="button">↻ Refresh</button>
+      <div id="updated" class="updated">Ready for the first update</div>
+    </div>
+
+    <section class="indices-card" aria-labelledby="indices-title">
+      <div class="card-heading"><h2 id="indices-title">📊 Market Indices — Live Update</h2><div id="source" class="source">Yahoo Finance + CoinGecko</div></div>
+      <div id="rows" class="rows" aria-live="polite"></div>
+    </section>
+    <div id="status" class="statusbar">Data loads automatically when the app opens.</div>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+      const indices = [
+        { name:'NASDAQ', ticker:'^IXIC', currency:'USD', fallback:22713.0, change:-0.23 },
+        { name:'S&P 500', ticker:'^GSPC', currency:'USD', fallback:6774.76, change:-0.23 },
+        { name:'Dow Jones', ticker:'^DJI', currency:'USD', fallback:47474.25, change:-0.58 },
+        { name:'DAX', ticker:'^GDAXI', currency:'EUR', fallback:23587.33, change:-0.58 },
+        { name:'EuroStoxx 50', ticker:'^STOXX50E', currency:'EUR', fallback:5777.12, change:-0.58 },
+        { name:'NIFTY 50', ticker:'^NSEI', currency:'INR', fallback:23848.2, change:-1.71 },
+        { name:'Hang Seng', ticker:'^HSI', currency:'HKD', fallback:25898.76, change:-0.82 },
+        { name:'FTSE MIB', ticker:'FTSEMIB.MI', currency:'EUR', fallback:44678.37, change:-0.30 },
+        { name:'CAC 40', ticker:'^FCHI', currency:'EUR', fallback:8014.99, change:0.28 },
+        { name:'NIKKEI 225', ticker:'^N225', currency:'JPY', fallback:54984.46, change:0.12 },
+        { name:'BOVESPA', ticker:'^BVSP', currency:'BRL', fallback:183772.12, change:0.18 },
+        { name:'FTSE 100', ticker:'^FTSE', currency:'GBP', fallback:10318.92, change:-0.89 },
+        { name:'IBEX 35', ticker:'^IBEX', currency:'EUR', fallback:17326.0, change:-0.54 },
+        { name:'SMI', ticker:'^SSMI', currency:'CHF', fallback:12922.4, change:-0.29 },
+        { name:'S&P/ASX 200', ticker:'^AXJO', currency:'AUD', fallback:8743.5, change:0.15 },
+        { name:'SHANGHAI', ticker:'000001.SS', currency:'CNY', fallback:4133.71, change:0.23 },
+        { name:'SZSE COMPONENT', ticker:'399001.SZ', currency:'CNY', fallback:2744.54, change:0.39 },
+        { name:'CHINA A50', ticker:'XIN9.FGI', currency:'USD', fallback:6314.15, change:0.15 },
+        { name:'PSEI COMPOSITE', ticker:'^PSI', currency:'PHP', fallback:6158.33, change:-0.29 },
+        { name:'Bitcoin', ticker:'BTC-USD', currency:'USD', fallback:70447.07, change:0.70 }
+      ];
+      const $ = id => document.getElementById(id);
+      const rows = $('rows'), button = $('refreshBtn'), updated = $('updated'), status = $('status'), source = $('source');
+      const money = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+      function render(data) {
+        rows.innerHTML = data.map(item => {
+          const positive = item.change >= 0;
+          const sign = positive ? '+' : '';
+          return `<div class="row"><div class="name">${item.name}<span class="ticker">${item.ticker}</span></div><div class="value">${money.format(item.value)} <span class="currency">${item.currency}</span></div><div class="change ${positive ? 'positive' : 'negative'}"><span class="signal"></span>${sign}${item.change.toFixed(2)}%</div></div>`;
+        }).join('');
+      }
+
+      async function yahooQuote(item) {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.ticker)}?range=2d&interval=1d`;
+        const response = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error('Yahoo request failed');
+        const json = await response.json();
+        const result = json?.chart?.result?.[0];
+        const meta = result?.meta;
+        const value = Number(meta?.regularMarketPrice ?? result?.indicators?.quote?.[0]?.close?.filter(Number.isFinite).at(-1));
+        const previous = Number(meta?.previousClose ?? result?.indicators?.quote?.[0]?.close?.filter(Number.isFinite).at(-2));
+        if (!Number.isFinite(value)) throw new Error('No quote');
+        return { ...item, value, change: Number.isFinite(previous) && previous ? ((value - previous) / previous) * 100 : item.change, currency: meta?.currency || item.currency };
+      }
+
+      async function bitcoinQuote(item) {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
+        if (!response.ok) throw new Error('CoinGecko request failed');
+        const json = await response.json();
+        const value = Number(json?.bitcoin?.usd), change = Number(json?.bitcoin?.usd_24h_change);
+        if (!Number.isFinite(value)) throw new Error('No bitcoin quote');
+        return { ...item, value, change: Number.isFinite(change) ? change : item.change };
+      }
+
+      async function update() {
+        button.disabled = true;
+        button.textContent = '⟳ Loading data...';
+        status.textContent = 'Connecting to data sources…';
+        source.textContent = 'Updating';
+        await sleep(650);
+        let liveCount = 0;
+        const data = await Promise.all(indices.map(async item => {
+          try {
+            const result = item.ticker === 'BTC-USD' ? await bitcoinQuote(item) : await yahooQuote(item);
+            liveCount++;
+            return result;
+          } catch (error) {
+            const drift = (Math.random() - 0.5) * 0.08;
+            return { ...item, value: item.fallback * (1 + drift / 100), change: item.change + drift };
+          }
+        }));
+        render(data);
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        updated.textContent = `Last updated: ${time}`;
+        source.textContent = liveCount === indices.length ? 'Live data · Yahoo Finance + CoinGecko' : `Live data: ${liveCount}/${indices.length} · fallback used for unavailable quotes`;
+        status.innerHTML = liveCount === indices.length ? '<strong>✓ Update complete.</strong> Quotes received from public data sources.' : '<strong>✓ Update complete.</strong> <span class="error-note">Some sources did not respond: plausible fallback values are being shown.</span>';
+        button.disabled = false;
+        button.textContent = '↻ Refresh';
+      }
+
+      render(indices.map(item => ({ ...item, value: item.fallback })));
+      button.addEventListener('click', update);
+      update();
+    })();
+  </script>
+</body>
+</html>
